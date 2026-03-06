@@ -1,8 +1,19 @@
 import pickle
 import numpy as np
-from mlflow.tracking import MlflowClient
-import mlflow
+import os
+import gdown
 import time
+import mlflow
+from mlflow.tracking import MlflowClient
+
+# Télécharger les fichiers si absents
+if not os.path.exists('model.pkl'):
+    print("Téléchargement model.pkl...")
+    gdown.download('https://drive.google.com/uc?id=1GaztCUxWe52X6vt8CmiWKxtHHTB23xEN', 'model.pkl', quiet=False)
+
+if not os.path.exists('encoders.pkl'):
+    print("Téléchargement encoders.pkl...")
+    gdown.download('https://drive.google.com/uc?id=1GCHJrkbgNiFDUIElkkg9lJx2eifDMysF', 'encoders.pkl', quiet=False)
 
 with open('model.pkl', 'rb') as f:
     model = pickle.load(f)
