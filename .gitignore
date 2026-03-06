@@ -1,0 +1,5 @@
+
+flask/model.pkl
+flask/encoders.pkl
+flask/__pycache__
+flask/**/__pycache__
