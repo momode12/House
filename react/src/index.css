@@ -1,0 +1,10 @@
+@import "tailwindcss";
+/* Configuration Tailwind v4 */
+@theme {
+  /* Vos couleurs personnalisées si nécessaire */
+  --color-primary: #22c55e;
+  --color-primary-dark: #166534;
+}
+
+/* IMPORTANT : Active le mode sombre basé sur la classe 'dark' */
+@custom-variant dark (&:is(.dark *));
