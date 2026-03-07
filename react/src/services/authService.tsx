@@ -5,7 +5,7 @@ import type {
   AuthSuccessResponse,
   ErrorResponse
 } from '../types/Auth';
-import { post } from '../types/api'; // Importer depuis api.ts (ajuste le chemin si besoin)
+import { post } from './api'; // Importer depuis api.ts (ajuste le chemin si besoin)
 
 export const authService = {
   register: async (
