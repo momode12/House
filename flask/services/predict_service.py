@@ -1,38 +1,47 @@
-import pickle
-import numpy as np
 import os
 import gdown
+import joblib
+import numpy as np
 import time
 import mlflow
 from mlflow.tracking import MlflowClient
 
-# ─── Téléchargement conditionnel ───────────────────────────────────────────
-def _download(filename: str, file_id: str) -> None:
-    """Télécharge un fichier depuis Google Drive seulement s'il est absent."""
-    if os.path.exists(filename):
-        print(f"✅ {filename} déjà présent, téléchargement ignoré.")
+# ─── Téléchargement + compression automatique ──────────────────────────────
+def _download_and_compress(filename: str, file_id: str) -> None:
+    compressed = filename + ".gz"
+
+    # Déjà compressé → rien à faire
+    if os.path.exists(compressed):
+        print(f"✅ {compressed} déjà présent, téléchargement ignoré.")
         return
 
-    url = f"https://drive.google.com/uc?id={file_id}"
-    print(f"⬇️  Téléchargement {filename}...")
-    try:
-        gdown.download(url, filename, quiet=False, fuzzy=True)
-        print(f"✅ {filename} téléchargé avec succès.")
-    except Exception as e:
-        raise RuntimeError(
-            f"❌ Impossible de télécharger {filename} : {e}\n"
-            "→ Vérifiez votre connexion et que le fichier Drive est bien public."
-        )
+    # Téléchargement si absent
+    if not os.path.exists(filename):
+        url = f"https://drive.google.com/uc?id={file_id}"
+        print(f"⬇️  Téléchargement {filename}...")
+        try:
+            gdown.download(url, filename, quiet=False, fuzzy=True)
+            print(f"✅ {filename} téléchargé.")
+        except Exception as e:
+            raise RuntimeError(
+                f"❌ Impossible de télécharger {filename} : {e}\n"
+                "→ Vérifiez votre connexion et que le fichier Drive est bien public."
+            )
 
-_download("model.pkl",    "1GaztCUxWe52X6vt8CmiWKxtHHTB23xEN")
-_download("encoders.pkl", "1GCHJrkbgNiFDUIElkkg9lJx2eifDMysF")
+    # Compression avec joblib
+    print(f"🗜️  Compression de {filename} → {compressed}...")
+    obj = joblib.load(filename)
+    joblib.dump(obj, compressed, compress=("gzip", 6))
+    os.remove(filename)  # supprime l'original pour libérer de la place
+    print(f"✅ {compressed} prêt.")
 
-# ─── Chargement ────────────────────────────────────────────────────────────
-with open("model.pkl", "rb") as f:
-    model = pickle.load(f)
 
-with open("encoders.pkl", "rb") as f:
-    encoders = pickle.load(f)
+_download_and_compress("model.pkl",    "1GaztCUxWe52X6vt8CmiWKxtHHTB23xEN")
+_download_and_compress("encoders.pkl", "1GCHJrkbgNiFDUIElkkg9lJx2eifDMysF")
+
+# ─── Chargement depuis les fichiers compressés ─────────────────────────────
+model    = joblib.load("model.pkl.gz")
+encoders = joblib.load("encoders.pkl.gz")
 
 print("✅ Modèle et encodeurs chargés.")
 
