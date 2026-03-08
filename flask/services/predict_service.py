@@ -6,38 +6,31 @@ import time
 import mlflow
 from mlflow.tracking import MlflowClient
 
-# ─── Téléchargement + compression automatique ──────────────────────────────
-def _download_and_compress(filename: str, file_id: str) -> None:
-    compressed = filename + ".gz"
+# ─── Fichiers compressés sur Google Drive ──────────────────────────────────
+FILES = {
+    "model.pkl.gz":    "1svfHIulNZXLmSj-9V57vSQChnzolPAKX",
+    "encoders.pkl.gz": "1JczF-VlxDD5KdDfYM6eVV879eYJZidGZ",
+}
 
-    # Déjà compressé → rien à faire
-    if os.path.exists(compressed):
-        print(f"✅ {compressed} déjà présent, téléchargement ignoré.")
+# ─── Téléchargement conditionnel ───────────────────────────────────────────
+def _download(filename: str, file_id: str) -> None:
+    if os.path.exists(filename):
+        print(f"✅ {filename} déjà présent, téléchargement ignoré.")
         return
 
-    # Téléchargement si absent
-    if not os.path.exists(filename):
-        url = f"https://drive.google.com/uc?id={file_id}"
-        print(f"⬇️  Téléchargement {filename}...")
-        try:
-            gdown.download(url, filename, quiet=False, fuzzy=True)
-            print(f"✅ {filename} téléchargé.")
-        except Exception as e:
-            raise RuntimeError(
-                f"❌ Impossible de télécharger {filename} : {e}\n"
-                "→ Vérifiez votre connexion et que le fichier Drive est bien public."
-            )
+    url = f"https://drive.google.com/uc?id={file_id}"
+    print(f"⬇️  Téléchargement {filename}...")
+    try:
+        gdown.download(url, filename, quiet=False, fuzzy=True)
+        print(f"✅ {filename} téléchargé.")
+    except Exception as e:
+        raise RuntimeError(
+            f"❌ Impossible de télécharger {filename} : {e}\n"
+            "→ Vérifiez votre connexion et que le fichier Drive est bien public."
+        )
 
-    # Compression avec joblib
-    print(f"🗜️  Compression de {filename} → {compressed}...")
-    obj = joblib.load(filename)
-    joblib.dump(obj, compressed, compress=("gzip", 6))
-    os.remove(filename)  # supprime l'original pour libérer de la place
-    print(f"✅ {compressed} prêt.")
-
-
-_download_and_compress("model.pkl",    "1GaztCUxWe52X6vt8CmiWKxtHHTB23xEN")
-_download_and_compress("encoders.pkl", "1GCHJrkbgNiFDUIElkkg9lJx2eifDMysF")
+for fname, fid in FILES.items():
+    _download(fname, fid)
 
 # ─── Chargement depuis les fichiers compressés ─────────────────────────────
 model    = joblib.load("model.pkl.gz")
@@ -66,7 +59,6 @@ def predict_price(data: dict) -> dict:
     price         = np.expm1(log_price)
     response_time = time.time() - start_time
 
-    # Log MLflow — ne bloque pas l'API si MLflow est indisponible
     try:
         with mlflow.start_run(run_name="prediction", nested=True):
             mlflow.log_param("location",           data["location"])
